@@ -27,6 +27,7 @@ body {
 }
 
 .card,
+.action-status,
 .toggle,
 button,
 .pill {
@@ -44,6 +45,12 @@ button,
   max-width: min(470px, calc(100vw - 184px));
 }
 
+.action-status {
+  pointer-events: none;
+  width: 190px;
+  padding: 10px 12px;
+}
+
 .title {
   font-weight: 800;
   font-size: 14px;
@@ -54,6 +61,40 @@ button,
   color: #4b5563;
   margin-top: 2px;
   line-height: 1.35;
+}
+
+.status-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: #166534;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.status-message {
+  min-height: 22px;
+  margin-top: 2px;
+  color: #111827;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.status-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.status-steps span {
+  height: 5px;
+  border-radius: 999px;
+  background: #d1d5db;
+}
+
+.status-steps span.active {
+  background: #16a34a;
 }
 
 .buttons {
@@ -132,6 +173,10 @@ button.secondary {
 
   .card {
     max-width: none;
+  }
+
+  .action-status {
+    width: auto;
   }
 
   .buttons {
