@@ -27,9 +27,10 @@ function b64buf(b64){const bin=atob(b64), bytes=new Uint8Array(bin.length); for(
 const geometry=new STLLoader().parse(b64buf(STL_B64)); geometry.computeVertexNormals(); geometry.center(); geometry.computeBoundingSphere();
 const mat=new THREE.MeshStandardMaterial({color:0xffd21f,roughness:.38,metalness:.02,side:THREE.DoubleSide}); const mesh=new THREE.Mesh(geometry,mat); scene.add(mesh);
 const edges=new THREE.EdgesGeometry(geometry,24); const lines=new THREE.LineSegments(edges,new THREE.LineBasicMaterial({color:0x111827})); scene.add(lines);
-const r=geometry.boundingSphere.radius||70; const grid=new THREE.GridHelper(140,14,0x94a3b8,0xdbe3ec); grid.rotation.x=Math.PI/2; grid.position.z=-.5; scene.add(grid); scene.add(new THREE.AxesHelper(45));
-camera.position.set(r*1.25,-r*1.55,r*.95); const controls=new OrbitControls(camera,renderer.domElement); controls.enableDamping=true; controls.dampingFactor=.08; controls.screenSpacePanning=true; controls.minDistance=r*.65; controls.maxDistance=r*6; controls.update();
-let spinning=false; document.getElementById('reset').onclick=()=>{camera.position.set(r*1.25,-r*1.55,r*.95);controls.target.set(0,0,0);controls.update()}; document.getElementById('spin').onclick=()=>{spinning=!spinning;document.getElementById('spin').textContent=spinning?'Stop':'Spin'};
+const r=geometry.boundingSphere.radius||70; const grid=new THREE.GridHelper(Math.max(180,r*4),18,0x94a3b8,0xdbe3ec); grid.rotation.x=Math.PI/2; grid.position.z=-.5; scene.add(grid); scene.add(new THREE.AxesHelper(45));
+function frameModel(){camera.position.set(r*2.15,-r*2.65,r*1.75);controls.target.set(0,0,0);controls.update()}
+const controls=new OrbitControls(camera,renderer.domElement); controls.enableDamping=true; controls.dampingFactor=.08; controls.screenSpacePanning=true; controls.minDistance=r*.8; controls.maxDistance=r*8; frameModel();
+let spinning=false; document.getElementById('reset').onclick=frameModel; document.getElementById('spin').onclick=()=>{spinning=!spinning;document.getElementById('spin').textContent=spinning?'Stop':'Spin'};
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 (function anim(){requestAnimationFrame(anim); if(spinning){mesh.rotation.z+=.008;lines.rotation.z=mesh.rotation.z} controls.update(); renderer.render(scene,camera)})();
 }catch(e){fail(e)}
