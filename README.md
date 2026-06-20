@@ -5,19 +5,23 @@ SO101 claw geometry.
 
 ## Model
 
-The generated assembly STL is:
-
-- `assets/so101-claw-bucket-attachment.stl`
-
-The checked-in source claw STLs are copied from TheRobotStudio SO-ARM100:
+The viewer loads the checked-in source claw STLs directly:
 
 - `assets/source-claw/Wrist_Roll_Follower_SO101.stl`
 - `assets/source-claw/Moving_Jaw_SO101.stl`
 
-The generator preserves the original wrist-roll follower mesh and moving-jaw
-mesh as visible geometry, places the moving jaw in a gripper pose, then adds an
-open bucket attached around the moving-jaw interface. The bucket is no longer a
-standalone servo-yoke model.
+The page preserves the original wrist-roll follower mesh and moving-jaw mesh as
+visible geometry, places the moving jaw in a gripper pose, then adds an open
+bucket around the moving-jaw interface.
+
+The viewer also includes an **Action traces** toggle. When enabled, it shows
+translucent ghost poses, a claw/bucket trajectory arc, and a dashed ground
+contact push-direction trace so the push action is legible in the static Pages
+viewer.
+
+The generated assembly STL is retained for compatibility:
+
+- `assets/so101-claw-bucket-attachment.stl`
 
 Current generated assembly:
 
@@ -39,8 +43,8 @@ SO-ARM100 checkout at `/tmp/SO-ARM100`.
 ## Validate
 
 ```bash
-python3 scripts/generate_viewer.py
 python3 -m py_compile scripts/generate_viewer.py
+node --check assets/scripts/viewer.js
 python3 - <<'PY'
 from pathlib import Path
 import re, struct
@@ -48,7 +52,6 @@ import re, struct
 for path in [
     Path("assets/source-claw/Wrist_Roll_Follower_SO101.stl"),
     Path("assets/source-claw/Moving_Jaw_SO101.stl"),
-    Path("assets/so101-claw-bucket-attachment.stl"),
 ]:
     data = path.read_bytes()
     assert not data.startswith(b"version https://git-lfs.github.com/spec/v1"), path
@@ -57,9 +60,13 @@ for path in [
     assert len(data) == 84 + count * 50, path
 
 html = Path("index.html").read_text()
-assert "assets/so101-claw-bucket-attachment.stl" in html
-assert "FALLBACK_ASSEMBLY_STL_B64" in html
-assert re.search(r"const ASSEMBLY_STL_URL\\s*=\\s*'assets/so101-claw-bucket-attachment\\.stl'", html)
-print("validated claw-derived viewer assets")
+viewer = Path("assets/scripts/viewer.js").read_text()
+assert 'id="traces"' in html
+assert "Action traces" in html
+assert "action-traces" in viewer
+assert "ground-contact-push-direction" in viewer
+assert "push-direction-arrow" in viewer
+assert re.search(r"source-claw/.+SO101\\.stl", viewer)
+print("validated action trace viewer markers")
 PY
 ```
