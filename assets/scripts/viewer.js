@@ -7,6 +7,13 @@ const SOURCE_STLS = {
   jaw: 'assets/source-claw/Moving_Jaw_SO101.stl',
 };
 
+const ACTION_STEPS = [
+  { message: 'Approach', y: 50, z: 20, rot: -0.16, scale: 0.985, color: 0x22c55e },
+  { message: 'Ground contact', y: 22, z: 8, rot: -0.06, scale: 0.995, color: 0xf59e0b },
+  { message: 'Push forward', y: -34, z: -6, rot: 0.1, scale: 1.01, color: 0xef4444 },
+  { message: 'Reset / recover', y: 44, z: 22, rot: -0.2, scale: 0.98, color: 0x3b82f6 },
+];
+
 const err = document.getElementById('err');
 
 function fail(error) {
@@ -63,8 +70,10 @@ function cloneWithMaterial(object, material) {
 
 function makeGhostAssembly(jawMesh, bucketGroup, material) {
   const ghost = new THREE.Group();
-  const jaw = cloneWithMaterial(jawMesh, material);
-  const bucket = cloneWithMaterial(bucketGroup, material);
+  const ghostMaterial = material.clone();
+  const jaw = cloneWithMaterial(jawMesh, ghostMaterial);
+  const bucket = cloneWithMaterial(bucketGroup, ghostMaterial);
+  ghost.userData.material = ghostMaterial;
   ghost.add(jaw, bucket);
   return ghost;
 }
@@ -83,6 +92,7 @@ function makeCurve(points, color, opacity, dashed = false) {
 function makeActionTraces(jawMesh, bucketGroup) {
   const traces = new THREE.Group();
   traces.name = 'action-traces';
+  traces.userData.stepGhosts = [];
 
   const ghostMaterial = new THREE.MeshStandardMaterial({
     color: 0x22c55e,
@@ -94,17 +104,15 @@ function makeActionTraces(jawMesh, bucketGroup) {
     side: THREE.DoubleSide,
   });
 
-  const ghostPoses = [
-    { y: 48, z: 18, rot: -0.14, scale: 0.985 },
-    { y: 24, z: 9, rot: -0.07, scale: 0.995 },
-    { y: -28, z: -6, rot: 0.09, scale: 1.01 },
-  ];
-
-  for (const pose of ghostPoses) {
+  for (const [index, pose] of ACTION_STEPS.entries()) {
     const ghost = makeGhostAssembly(jawMesh, bucketGroup, ghostMaterial);
+    ghost.name = `action-trace-ghost-${index}`;
     ghost.position.set(0, pose.y, pose.z);
     ghost.rotation.x = pose.rot;
     ghost.scale.setScalar(pose.scale);
+    ghost.userData.material.color.setHex(pose.color);
+    ghost.userData.material.opacity = 0.12;
+    traces.userData.stepGhosts.push(ghost);
     traces.add(ghost);
   }
 
@@ -148,7 +156,71 @@ function makeActionTraces(jawMesh, bucketGroup) {
     traces.add(mark);
   }
 
+  const activeMaterial = new THREE.MeshStandardMaterial({
+    color: 0x22c55e,
+    emissive: 0x14532d,
+    emissiveIntensity: 0.2,
+    transparent: true,
+    opacity: 0.42,
+    roughness: 0.5,
+    metalness: 0.02,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
+  const activeGhost = makeGhostAssembly(jawMesh, bucketGroup, activeMaterial);
+  activeGhost.name = 'action-trace-active-pose';
+  traces.userData.activeGhost = activeGhost;
+  traces.add(activeGhost);
+
   return traces;
+}
+
+function easeInOut(t) {
+  return t * t * (3 - 2 * t);
+}
+
+function applyActionPose(ghost, pose) {
+  ghost.position.set(0, pose.y, pose.z);
+  ghost.rotation.x = pose.rot;
+  ghost.scale.setScalar(pose.scale);
+}
+
+function updateStatusPanel(stepIndex, statusElements) {
+  if (!statusElements.panel || statusElements.panel.hidden) return;
+  statusElements.message.textContent = ACTION_STEPS[stepIndex].message;
+  statusElements.steps.forEach((step, index) => {
+    step.classList.toggle('active', index === stepIndex);
+  });
+}
+
+function updateActionTraces(traces, elapsedMs, statusElements) {
+  const stepDurationMs = 1350;
+  const totalDurationMs = stepDurationMs * ACTION_STEPS.length;
+  const loopMs = elapsedMs % totalDurationMs;
+  const stepIndex = Math.floor(loopMs / stepDurationMs);
+  const nextIndex = (stepIndex + 1) % ACTION_STEPS.length;
+  const localT = easeInOut((loopMs % stepDurationMs) / stepDurationMs);
+  const current = ACTION_STEPS[stepIndex];
+  const next = ACTION_STEPS[nextIndex];
+  const blended = {
+    y: THREE.MathUtils.lerp(current.y, next.y, localT),
+    z: THREE.MathUtils.lerp(current.z, next.z, localT),
+    rot: THREE.MathUtils.lerp(current.rot, next.rot, localT),
+    scale: THREE.MathUtils.lerp(current.scale, next.scale, localT),
+  };
+
+  const pulse = 0.5 + Math.sin((loopMs / stepDurationMs) * Math.PI * 2) * 0.5;
+  for (const [index, ghost] of traces.userData.stepGhosts.entries()) {
+    ghost.userData.material.opacity = index === stepIndex ? 0.24 + pulse * 0.12 : 0.09;
+  }
+
+  const activeGhost = traces.userData.activeGhost;
+  applyActionPose(activeGhost, blended);
+  activeGhost.userData.material.color.setHex(current.color);
+  activeGhost.userData.material.emissive.setHex(current.color);
+  activeGhost.userData.material.opacity = 0.32 + pulse * 0.18;
+  traces.scale.setScalar(1 + pulse * 0.018);
+  updateStatusPanel(stepIndex, statusElements);
 }
 
 async function loadStlMesh(loader, url, material) {
@@ -159,6 +231,12 @@ async function loadStlMesh(loader, url, material) {
 
 try {
   const app = document.getElementById('app');
+  const actionStatus = document.getElementById('action-status');
+  const statusElements = {
+    panel: actionStatus,
+    message: document.getElementById('action-message'),
+    steps: [...document.querySelectorAll('.status-steps span')],
+  };
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xf7f7f4);
 
@@ -235,13 +313,22 @@ try {
   frameModel();
 
   let spinning = false;
+  let traceAnimationStart = performance.now();
+  let tracePausedAt = 0;
   document.getElementById('reset').onclick = frameModel;
   document.getElementById('spin').onclick = () => {
     spinning = !spinning;
     document.getElementById('spin').textContent = spinning ? 'Stop' : 'Spin';
   };
   document.getElementById('traces').onchange = (event) => {
-    traces.visible = event.currentTarget.checked;
+    const enabled = event.currentTarget.checked;
+    traces.visible = enabled;
+    actionStatus.hidden = !enabled;
+    if (enabled) {
+      traceAnimationStart = performance.now() - tracePausedAt;
+    } else {
+      tracePausedAt = performance.now() - traceAnimationStart;
+    }
   };
 
   addEventListener('resize', () => {
@@ -252,6 +339,9 @@ try {
 
   (function animate() {
     requestAnimationFrame(animate);
+    if (traces.visible) {
+      updateActionTraces(traces, performance.now() - traceAnimationStart, statusElements);
+    }
     if (spinning) {
       model.rotation.z += 0.007;
       traces.rotation.z = model.rotation.z;

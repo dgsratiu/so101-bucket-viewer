@@ -14,10 +14,11 @@ The page preserves the original wrist-roll follower mesh and moving-jaw mesh as
 visible geometry, places the moving jaw in a gripper pose, then adds an open
 bucket around the moving-jaw interface.
 
-The viewer also includes an **Action traces** toggle. When enabled, it shows
-translucent ghost poses, a claw/bucket trajectory arc, and a dashed ground
-contact push-direction trace so the push action is legible in the static Pages
-viewer.
+The viewer also includes an **Action traces** toggle. When enabled, it shows an
+animated four-step push sequence with a visible status panel: approach, ground
+contact, push forward, and reset/recover. The translucent claw/bucket ghost pose
+continues stepping through the sequence even when Spin is off, and disabling the
+toggle hides and pauses both the traces and status panel.
 
 The generated assembly STL is retained for compatibility:
 
@@ -62,8 +63,13 @@ for path in [
 html = Path("index.html").read_text()
 viewer = Path("assets/scripts/viewer.js").read_text()
 assert 'id="traces"' in html
+assert 'id="action-status"' in html
+assert 'id="action-message"' in html
 assert "Action traces" in html
 assert "action-traces" in viewer
+assert "ACTION_STEPS" in viewer
+assert "Ground contact" in viewer
+assert "Push forward" in viewer
 assert "ground-contact-push-direction" in viewer
 assert "push-direction-arrow" in viewer
 assert re.search(r"source-claw/.+SO101\\.stl", viewer)
