@@ -1,0 +1,140 @@
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #f7f7f4;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+#app {
+  position: fixed;
+  inset: 0;
+  touch-action: none;
+}
+
+.hud {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  top: max(10px, env(safe-area-inset-top));
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.card,
+.toggle,
+button,
+.pill {
+  background: rgba(255, 255, 255, 0.9);
+  color: #111827;
+  border: 1px solid rgba(17, 24, 39, 0.14);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 28px rgba(17, 24, 39, 0.14);
+}
+
+.card {
+  pointer-events: auto;
+  padding: 10px 12px;
+  max-width: min(470px, calc(100vw - 184px));
+}
+
+.title {
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.sub {
+  font-size: 11px;
+  color: #4b5563;
+  margin-top: 2px;
+  line-height: 1.35;
+}
+
+.buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+button,
+.toggle {
+  pointer-events: auto;
+  min-height: 38px;
+  padding: 8px 11px;
+  font-weight: 800;
+}
+
+button {
+  background: #facc15;
+}
+
+button.secondary {
+  background: #bfdbfe;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #dcfce7;
+  font-size: 13px;
+}
+
+.toggle input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #16a34a;
+}
+
+.bottom {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  text-align: center;
+  pointer-events: none;
+}
+
+.pill {
+  display: inline-block;
+  color: #374151;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+#err {
+  display: none;
+  position: fixed;
+  inset: 20px;
+  color: white;
+  background: #321;
+  border: 1px solid #f66;
+  border-radius: 8px;
+  padding: 16px;
+  overflow: auto;
+  z-index: 5;
+}
+
+@media (max-width: 640px) {
+  .hud {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .card {
+    max-width: none;
+  }
+
+  .buttons {
+    justify-content: flex-start;
+  }
+}
